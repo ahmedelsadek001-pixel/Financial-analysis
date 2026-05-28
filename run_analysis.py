@@ -5,21 +5,25 @@ from google.genai import types
 from datetime import datetime
 import requests
 
-# 1. تهيئة العميل
+# 1. استقبال الزوج المختار من مدخلات جيتهاب
+symbol = os.environ.get("SELECTED_SYMBOL", "GC=F")
+
+# 2. تهيئة العميل
 api_key = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
 
-# 2. إدارة الجلسة وتجاوز الحظر السحابي
+# 3. إدارة الجلسة وتجاوز الحظر السحابي
 session = requests.Session()
 session.headers.update({
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 })
 
-gold = yf.Ticker("GC=F", session=session)
-hist = gold.history(period="5d", interval="1h")
+# سحب بيانات الزوج المختار
+ticker_data = yf.Ticker(symbol, session=session)
+hist = ticker_data.history(period="5d", interval="1h")
 
 if hist.empty:
-    hist = yf.download("GC=F", period="5d", interval="1h", session=session)
+    hist = yf.download(symbol, period="5d", interval="1h", session=session)
 
 hist_clean = hist.tail(15)
 
@@ -29,17 +33,17 @@ for index, row in hist_clean.iterrows():
     data_lines.append(line)
 market_data_cleaned = "\n".join(data_lines)
 
-# توليد طوابع زمنية دقيقة للحظة التحليل الفعلي
+# توليد طوابع زمنية دقيقة
 current_timestamp_en = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
 current_timestamp_ar = datetime.now().strftime("%Y-%m-%d في تمام الساعة %H:%M:%S")
 
-# 3. صياغة التعليمات الهيكلية الصارمة للتقرير مع إلزامية الطوابع الزمنية
+# 4. صياغة التعليمات الهيكلية لتكون مرنة مع أي زوج مالي
 SYSTEM_INSTRUCTIONS = f"""
-You are an institutional quantitative financial analyst. Your task is to analyze the provided digital data for Gold and generate a dry, rigorous, and highly structured technical report.
+You are an institutional quantitative financial analyst. Your task is to analyze the provided digital data for the selected asset ({symbol}) and generate a dry, rigorous, and highly structured technical report.
 
 The output must follow this exact sequence and structure without any introductory or conversational text, and absolutely NO dotted lines (-------) or redundant spaces:
 
-# Institutional Gold (XAUUSD) Technical Analysis Report
+# Institutional Asset ({symbol}) Technical Analysis Report
 **Execution Timestamp:** {current_timestamp_en}
 
 [Generate the entire technical analysis here in formal financial English. Cover Market Structure (BOS/CHoCH), Order Blocks, Fair Value Gaps (FVG), and Liquidity Sweeps based on the numerical data].
@@ -51,10 +55,10 @@ The output must follow this exact sequence and structure without any introductor
 - **Key Support Levels**: [List at least two specific numeric support prices]
 - **Key Resistance Levels**: [List at least two specific numeric resistance prices]
 
-# ملخص التقرير المالي الفني (Arabic Executive Summary)
+# ملخص التقرير المالي الفني للأصل ({symbol})
 **توقيت التنفيذ الفعلي:** {current_timestamp_ar}
 
-## هيكل السوق والسيولة
+## هيكل السوق والسيولة الكامنة
 [اكتب هنا ملخصاً فنياً صارماً وجافاً باللغة العربية يشرح حركة السعر وتغير الهيكل السعري ومناطق تصفية السيولة بناءً على التحليل أعلاه].
 
 ## المستويات التكتيكية الحسمة
@@ -65,20 +69,22 @@ The output must follow this exact sequence and structure without any introductor
 - **مستويات المقاومة الرئيسية (Resistance)**: [المستويات الرقمية]
 """
 
-# 4. استدعاء الموديل
+# 5. استدعاء الموديل
 response = client.models.generate_content(
     model='gemini-2.5-flash',
-    contents=f"Generate the institutional English report followed by the Arabic summary based on this clean data. Ensure strict alignment with the requested tactical levels and timestamps: \n\n{market_data_cleaned}",
+    contents=f"Generate the institutional English report followed by the Arabic summary based on this clean data for {symbol}. Ensure strict alignment with the requested tactical levels and timestamps: \n\n{market_data_cleaned}",
     config=types.GenerateContentConfig(
         system_instruction=SYSTEM_INSTRUCTIONS,
         temperature=0.1
     ),
 )
 
-# 5. حفظ التقرير باسم يتضمن التاريخ
+# 6. حفظ التقرير باسم يتوافق مع الرمز المختار والتاريخ الحاضر لسهولة الفرز
 os.makedirs("reports", exist_ok=True)
 date_str = datetime.now().strftime("%Y-%m-%d")
-with open(f"reports/XAUUSD-{date_str}.md", "w", encoding="utf-8") as f:
+# تنظيف اسم الملف في حال احتواء الرمز على رموز خاصة كالفوركس
+file_symbol = symbol.replace("=", "").replace("-", "")
+with open(f"reports/{file_symbol}-{date_str}.md", "w", encoding="utf-8") as f:
     f.write(response.text.strip())
 
-print("تم دمج آلية الوقت والتاريخ الدقيقة بنجاح.")
+print(f"تم توليد تقرير {symbol} بنجاح.")
