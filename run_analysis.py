@@ -5,7 +5,7 @@ from google.genai import types
 from datetime import datetime
 
 # 1. تهيئة العميل الجديد باستخدام مكتبة google-genai الحديثة
-api_key = os.environ.get("GEMINI_API_KEY")
+api_key = os.environ.get("AIzaSyDISaieVf7cbuDhVvrtv461KToRg_F5Xqg")
 client = genai.Client(api_key=api_key)
 
 # 2. سحب بيانات أسعار الذهب الحية من الإنترنت مباشرة
