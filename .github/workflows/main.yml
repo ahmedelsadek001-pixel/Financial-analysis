@@ -2,7 +2,7 @@ name: Automated Financial Analysis
 
 on:
   schedule:
-    - cron: '0 0 * * *' # التشغيل التلقائي اليومي الافتراضي
+    - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
       symbol:
@@ -25,9 +25,15 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install google-genai yfinance pandas
+          pip install google-genai yfinance pandas requests
 
-     - name: Commit and Push Report
+      - name: Run Analyzer
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SELECTED_SYMBOL: ${{ github.event.inputs.symbol || 'GC=F' }}
+        run: python run_analysis.py
+
+      - name: Commit and Push Report
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
