@@ -2,8 +2,14 @@ name: Automated Financial Analysis
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *' # التشغيل التلقائي اليومي الافتراضي
   workflow_dispatch:
+    inputs:
+      symbol:
+        description: 'Enter the Ticker Symbol (e.g., GC=F, BTC-USD, EURUSD=X)'
+        required: true
+        default: 'GC=F'
+        type: string
 
 jobs:
   analyze:
@@ -15,7 +21,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # ترقية النسخة لضمان الدعم الكامل للمكتبات الحديثة
+          python-version: '3.11'
 
       - name: Install Dependencies
         run: |
@@ -24,12 +30,5 @@ jobs:
       - name: Run Analyzer
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SELECTED_SYMBOL: ${{ github.event.inputs.symbol || 'GC=F' }}
         run: python run_analysis.py
-
-      - name: Commit and Push Report
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reports/*.md || true
-          git commit -m "Update Daily Financial Report [Automated]" || exit 0
-          git push origin main
