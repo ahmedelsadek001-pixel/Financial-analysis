@@ -112,8 +112,9 @@ Follow this exact structural layout:
 """
 
 # 4. استدعاء الموديل المستقر المستدام لمنع أخطاء الـ 503 والضغط العالي
+# التعديل الصحيح لاسم الموديل ليعمل مباشرة بدون أخطاء 404
 response = client.models.generate_content(
-    model='gemini-1.5-flash',
+    model='gemini-2.5-flash', # نستخدم الإصدار الأحدث والمدعوم كلياً في هذه الحزمة
     contents=f"Perform technical report based on OANDA real chart price data:\n\n{market_data_cleaned}",
     config=types.GenerateContentConfig(
         system_instruction=SYSTEM_INSTRUCTIONS,
